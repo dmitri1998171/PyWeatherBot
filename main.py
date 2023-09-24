@@ -1,5 +1,6 @@
 import telebot, json
 import requests as req
+from geopy import geocoders
 from telebot import types
 
 def parseJSON():
@@ -16,6 +17,13 @@ latitude, longitude = 0, 0
 userId = 0
 firstName = ''
 
+def geo_pos(city: str):
+    global latitude, longitude
+
+    geolocator = geocoders.Nominatim(user_agent="telebot")
+    latitude = str(geolocator.geocode(city).latitude)
+    longitude = str(geolocator.geocode(city).longitude)
+    
 def code_location(latitude: str, longitude: str, token_accu: str):
     url_location_key = 'http://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey=' \
                        f'{token_accu}&q={latitude},{longitude}&language=en'
@@ -63,6 +71,11 @@ def getWeather():
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
+    global userId, firstName
+
+    userId = message.from_user.id
+    firstName = message.from_user.first_name
+
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(types.KeyboardButton(text= "Show current weather!", request_location= True))
 
@@ -79,8 +92,16 @@ def location(message):
         latitude = message.location.latitude
         longitude =  message.location.longitude
         
-        print("latitude: %s; longitude: %s" % (latitude, longitude))
         getWeather()
+
+@bot.message_handler(content_types=["text"])
+def get_text(message):
+    try:
+        geo_pos(message.text)
+        getWeather()
+
+    except AttributeError as err:
+        bot.send_message(message.from_user.id, f'Sorry! I don\'t know that city')
 
 # ###############################################################
 
@@ -95,7 +116,7 @@ bot.infinity_polling()
 
 \/ 1) get a weather
 \/ 2) find out the user's location 
-3) get user's location by city from text message (for desktop)
+\/ 3) get user's location by city from text message (for desktop)
 4) verbose mode feature
 
 '''
