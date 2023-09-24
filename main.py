@@ -11,56 +11,59 @@ def parseJSON():
 
 tokens = parseJSON()
 bot = telebot.TeleBot(tokens['token'])
+latitude, longitude = 0, 0
+userId = 0
+firstName = ''
 
-def print_weather(dict_weather, message):
-    bot.send_message(message.from_user.id, f'Разрешите доложить, Ваше сиятельство!'
-                                           f' Температура сейчас {dict_weather["сейчас"]["temp"]}!'
-                                           f' А на небе {dict_weather["сейчас"]["sky"]}.'
-                                           f' Температура через три часа {dict_weather["через3ч"]["temp"]}!'
-                                           f' А на небе {dict_weather["через3ч"]["sky"]}.'
-                                           f' Температура через шесть часов {dict_weather["через6ч"]["temp"]}!'
-                                           f' А на небе {dict_weather["через6ч"]["sky"]}.'
-                                           f' Температура через девять часов {dict_weather["через9ч"]["temp"]}!'
-                                           f' А на небе {dict_weather["через9ч"]["sky"]}.')
-    bot.send_message(message.from_user.id, f' А здесь ссылка на подробности '
-                                           f'{dict_weather["link"]}')
+def print_weather(dict_weather):
+    bot.send_message(userId, 
+                     f'Current temp. is {dict_weather["now"]["temp"]} {dict_weather["now"]["sky"]}\n'
+                     f'+3h. temp. is {dict_weather["+3h"]["temp"]} {dict_weather["+3h"]["sky"]}\n'
+                     f'+6h. temp. is {dict_weather["+6h"]["temp"]} {dict_weather["+6h"]["sky"]}\n'
+                     f'+9h. temp. is {dict_weather["+9h"]["temp"]} {dict_weather["+9h"]["sky"]}'
+    )
 
-def print_yandex_weather(dict_weather_yandex, message):
-    day = {'night': 'ночью', 'morning': 'утром', 'day': 'днем', 'evening': 'вечером', 'fact': 'сейчас'}
-    bot.send_message(message.from_user.id, f'А яндекс говорит:')
-    for i in dict_weather_yandex.keys():
-        if i != 'link':
-            time_day = day[i]
-            bot.send_message(message.from_user.id, f'Температура {time_day} {dict_weather_yandex[i]["temp"]}'
-                                                   f', на небе {dict_weather_yandex[i]["condition"]}')
+    bot.send_message(userId, f' Verbosely about current weather \n {dict_weather["link"]}')
 
-    bot.send_message(message.from_user.id, f' А здесь ссылка на подробности '
-                                           f'{dict_weather_yandex["link"]}')
+def getWeather():
+    global latitude, longitude
+
+    code_loc = code_location(latitude, longitude, tokens["token_accu"])
+    you_weather = weather(code_loc, tokens["token_accu"])
+    print_weather(you_weather)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    markup.add(types.KeyboardButton("Show current weather!"))
+    markup.add(types.KeyboardButton(text= "Show current weather!", request_location= True))
 
-    bot.send_message(message.from_user.id, f"👋 Hi, {message.from_user.first_name}. I'm weather bot", reply_markup=markup)
+    bot.send_message(message.from_user.id, f"👋 Hi, {firstName}. I'm weather bot", reply_markup=markup)
 
-@bot.message_handler(content_types=['text'])
-def get_text(message):
-    global cities
+@bot.message_handler(content_types=["location"])
+def location(message):
+    global latitude, longitude, userId, firstName
 
-    if(message.text == "Show current weather!"):
-        city = "Shymkent"
-        bot.send_message(message.from_user.id, f'О великий и могучий {message.from_user.first_name}!'
-                                                f' Твой город {city}')
-        latitude, longitude = geo_pos(city)
-        code_loc = code_location(latitude, longitude, tokens["token_accu"])
-        you_weather = weather(code_loc, tokens["token_accu"])
-        print_weather(you_weather, message)
-        yandex_weather_x = yandex_weather(latitude, longitude, tokens["token_yandex"])
-        print_yandex_weather(yandex_weather_x, message)
-    
+    userId = message.from_user.id
+    firstName = message.from_user.first_name
+
+    if message.location is not None:
+        latitude = message.location.latitude
+        longitude =  message.location.longitude
+        
+        print("latitude: %s; longitude: %s" % (latitude, longitude))
+        getWeather()
+
 
 bot.infinity_polling()
 
 # Reference
 # https://habr.com/ru/articles/584134/
+
+'''
+
+    TODO
+
+\/ 1) get a weather
+2) find out the user's location 
+
+'''
