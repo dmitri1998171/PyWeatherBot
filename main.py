@@ -60,7 +60,7 @@ def print_weather(dict_weather):
 
     bot.send_message(userId, f' Verbosely about current weather \n {dict_weather["link"]}')
 
-def getWeather():
+def get_weather():
     global latitude, longitude
 
     code_loc = code_location(latitude, longitude, tokens["token_accu"])
@@ -92,13 +92,13 @@ def location(message):
         latitude = message.location.latitude
         longitude =  message.location.longitude
         
-        getWeather()
+        get_weather()
 
 @bot.message_handler(content_types=["text"])
 def get_text(message):
     try:
         geo_pos(message.text)
-        getWeather()
+        get_weather()
 
     except AttributeError as err:
         bot.send_message(message.from_user.id, f'Sorry! I don\'t know that city')
@@ -106,17 +106,3 @@ def get_text(message):
 # ###############################################################
 
 bot.infinity_polling()
-
-# Reference
-# https://habr.com/ru/articles/584134/
-
-'''
-
-    TODO
-
-\/ 1) get a weather
-\/ 2) find out the user's location 
-\/ 3) get user's location by city from text message (for desktop)
-4) verbose mode feature
-
-'''
